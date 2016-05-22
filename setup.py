@@ -87,7 +87,7 @@ setup(
 
             # Make a script/executable called ``irk`` which,
             # when executed, loads and invokes ``irk.cli.main.cli()``.
-            "irk = irk.cli.main:cli",
+            "irk = irk.cli.main:entrypoint",
 
         ],
     },
