@@ -30,6 +30,7 @@ import time
 
 
 TEXT_BOLD = '\033[01m'
+TEXT_DIM = '\033[02m'
 TEXT_OK = '\033[92m'
 TEXT_WARNING = '\033[93m'
 TEXT_ERROR = '\033[91m'
@@ -41,10 +42,7 @@ STDOUT_DATE_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 STDERR_MESSAGE_FORMAT = '%(message)s'
 STDERR_DATE_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 
-VERBOSE_MESSAGE_FORMAT = '%(asctime)s - ' + \
-    '%(name)s - ' + \
-    '%(levelname)s - ' + \
-    '%(message)s'
+VERBOSE_MESSAGE_FORMAT = '%(message)s'
 VERBOSE_DATE_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -116,8 +114,11 @@ def error(text):
 
 def log(text, is_verbose):
     """Safely echo to the verbose log."""
+    output = text
     if is_verbose:
-        verbose_log.info(text)
+        if sys.stderr.isatty():
+            output = format_for_tty(text, [TEXT_DIM])
+        verbose_log.info(output)
 
 
 def usage():
@@ -143,16 +144,10 @@ def irk(is_verbose):
     sock.start(echo, emphasize, warning, error, lambda x: log(x, is_verbose))
 
 
-def main(foo, wait=30, is_verbose=False):
+def main(is_verbose=False):
     """This starts the main program loop.
 
     Args:
-
-        foo
-            Some argument.
-
-        wait
-            How long to sleep for each iteration.
 
         is_verbose
             True if you want to write to the verbose log. False if not.
@@ -161,15 +156,7 @@ def main(foo, wait=30, is_verbose=False):
     log("Executing main()...", is_verbose)
     try:
         irk(is_verbose)
-        while True:
-            log("Waking up...", is_verbose)
 
-            # Do what you need to do.
-            log("Nothing to do...", is_verbose)
-
-            log("Sleeping " + str(wait) + " seconds...", is_verbose)
-            time.sleep(wait)
-            
     # Trap exits so we can handle them.
     except KeyboardInterrupt:
         echo("")
@@ -226,14 +213,16 @@ def entrypoint():
 
         arg_index += 1
 
+    '''
     # Make sure the FOO argument was provided.
     log("The user provided this value for FOO: " + str(foo), is_verbose)
     if not foo:
         error("Missing required argument: FOO.")
         sys.exit(1)
+    '''
 
     # Start the program.
-    main(foo, wait, is_verbose)
+    main(is_verbose)
 
 
 if __name__ == "__main__":
