@@ -104,18 +104,18 @@ def usage():
     """Print the usage for the command."""
     echo("Usage: python " + str(__file__) + " [Options] [Arguments]")
     echo("")
-    echo("  A description of what the program does goes here.")
-    echo("")
+    echo("  A dumb little IRC client.")
     echo("")
     echo("Options:")
     echo("  -h --help     Display this help.")
     echo("  -v --verbose  Show verbose logging details.")
     echo("")
     echo("Arguments:")
-    echo("  FOO           Something something something.")
+    echo("  HOST[:PORT]   The IRC server to connect to.")
+    echo("                Defaults to port 6667.")
     echo("")
     echo("Example:")
-    echo("  python " + str(__file__) + " --verbose bar")
+    echo("  irk irc.freenode.net")
 
 
 def main(host, port, is_verbose=False):

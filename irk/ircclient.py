@@ -3,17 +3,55 @@
 """Starts an IRC client."""
 
 import sys
+import threading
 
 from . import exceptions
 from . import ircsocket
 
 
 LINESEP = "\r\n"
+"""IRC likes a \r\n, though most accept a \n."""
 
 
-def login(host, port, vlog):
-    sock = ircsocket.connect(host, port, vlog)
+def connect_to_irc(host, port, vlog):
+    """Connect to an IRC server.
 
+    Args:
+
+        host
+            The host to connect to.
+
+        port
+            The port to use.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    Return:
+        An open socket connected to the server, or the
+        program exits if it cannot connect.
+
+    """
+    try:
+        sock = ircsocket.connect(host, port, vlog)
+    except exceptions.CouldNotConnect as connect_error:
+        error(str(connect_error))
+        sys.exit()
+    return sock
+
+
+def login(sock, vlog):
+    """Login to an IRC server.
+
+    Args:
+
+        sock
+            An open socket to login over.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    """
     msg = "PASS to-wong-foo" + LINESEP
     vlog(msg)
     ircsocket.send(sock, msg, vlog)
@@ -26,10 +64,25 @@ def login(host, port, vlog):
     vlog(msg)
     ircsocket.send(sock, msg, vlog)
 
-    return sock
-
 
 def parse_input(sock, data, vlog):
+    """Convert input into IRC commands and send them to the server.
+
+    Args:
+
+        sock
+            An open socket to login over.
+
+        data
+            The data entered by the user.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    Return:
+        True if its okay to continue; False if not.
+
+    """
     words = data.split()
 
     cmd = words[0]
@@ -43,23 +96,71 @@ def parse_input(sock, data, vlog):
 
 
 def parse_output(data, echo):
+    """Parse output received from the server.
+
+    Args:
+
+        data
+            Data received from the server.
+
+        echo
+            A logger to pass the parsed data to.
+
+    """
     echo(data)
 
 
 def start(host, port, echo, error, vlog):
+    """Start an IRC client.
 
+    Args:
+
+        host
+            The host to connect to.
+
+        port
+            The port to use.
+
+        echo
+            A logger to pass output messages to.
+
+        error
+            A logger to pass error messages to.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    """
+    sock = connect_to_irc(host, port, vlog)
+    login(sock, vlog)
+
+    # Start listening on the socket in a separate thread.
+    thread_should_stop = threading.Event()
+    args = (sock, thread_should_stop, lambda x: parse_output(x, echo), vlog)
+    thread = threading.Thread(target=ircsocket.receive, args=args)
+    thread.start()
+
+    # Listen for input from the user in this thread.
+    keep_alive = True
     try:
-        sock = login(host, port, vlog)
-    except exceptions.CouldNotConnect as login_error:
-        error(str(login_error))
-        sys.exit()
+        while keep_alive:
+            raw_entered_data = input()
+            entered_data = raw_entered_data.strip()
 
-    # TO DO: catch SendFailed and ConnectionBroken.
-    # Be sure to close connections first though.
-    # For that, you need the thread and the thread_should_stop event.
-    ircsocket.start(sock, 
-        lambda x: parse_input(sock, x, vlog), 
-        lambda x: parse_output(x, echo), 
-        vlog)
+            if entered_data:
+                vlog("STDIN: " + str(entered_data))
+                keep_alive = parse_input(sock, entered_data, vlog)
 
+    # If the user exits, or the system exits, disconnect first.
+    except (KeyboardInterrupt, SystemExit):
+        vlog("")
+        vlog("Caught exit signal...")
+        ircsocket.disconnect(sock, thread, thread_should_stop, vlog)
+        vlog("Re-raising exit signal...")
+        raise
+
+    # Disconnect before stopping.
+    vlog("")
+    vlog("Nothing left to do.")
+    ircsocket.disconnect(sock, thread, thread_should_stop, vlog)
     echo("Goodbye.")
