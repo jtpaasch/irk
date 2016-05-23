@@ -3,12 +3,33 @@
 """Connects, sends, receives, and disconnects to/from a socket."""
 
 import socket
-import threading
 
 from . import exceptions
 
 
 def connect(host, port, vlog):
+    """Connect to a socket.
+
+    Args:
+
+        host
+            The host to connect to.
+
+        port
+            The port to use.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    Raises:
+
+        CouldNotConnect
+            If it could not connect.
+
+    Returns
+        An open socket connected to the server.
+
+    """
     address = (host, port)
     vlog("About to connect to " + str(host) + ":" + str(port))
     try:
@@ -22,6 +43,23 @@ def connect(host, port, vlog):
 
 
 def disconnect(sock, thread, thread_should_stop, vlog):
+    """Disconnect from a socket listening on a separate thread.
+
+    Args:
+
+        sock
+            The socket you want to disconnect.
+
+        thread
+            The thread that's listening to the socket.
+
+        thread_should_stop
+            A threading ``Event`` that can be flagged/cleared.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    """
     thread_should_stop.set()
     vlog("Shutting down socket.")
     sock.shutdown(1)
@@ -32,6 +70,20 @@ def disconnect(sock, thread, thread_should_stop, vlog):
 
 
 def send(sock, data, vlog):
+    """Send data over the socket to the server.
+
+    Args:
+
+        sock
+            An open socket to send data over.
+
+        data
+            The data to send.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    """
     bytes_of_data = data.encode()
     total_chars = len(bytes_of_data)
     total_chars_sent = 0
@@ -51,10 +103,26 @@ def send(sock, data, vlog):
         vlog("Sent: " + str(part_to_send.decode("utf-8")))
         total_chars_sent += chars_sent
     vlog("Finished sending: " + str(data))
-    return sock
 
 
 def receive(sock, thread_should_stop, output_handler, vlog):
+    """Listen for data sent over a socket.
+
+    Args:
+
+        sock
+            The socket to listen on.
+
+        thread_should_stop
+            A threading ``Event`` that can be flagged/cleared.
+
+        output_handler
+            A logger to pass output to.
+
+        vlog
+            A verbose logger to pass messages to.
+
+    """
     chunk_size = 1024
     buffer = ""
 
@@ -91,32 +159,3 @@ def receive(sock, thread_should_stop, output_handler, vlog):
         vlog("Done reading chunks of " + str(chunk_size) + " bytes...")
 
     vlog("Done receiving data over the socket.")
-
-
-def start(sock, input_handler, output_handler, vlog):
-    thread_should_stop = threading.Event()
-    args = (sock, thread_should_stop, output_handler, vlog)
-    thread = threading.Thread(target=receive, args=args)
-    thread.start()
-
-    should_continue = True
-
-    try:
-        while should_continue:
-            entered_data = input()
-            entered_data = entered_data.strip()
-
-            if entered_data:
-                vlog("STDIN: " + str(entered_data))
-                should_continue = input_handler(entered_data)
-
-    except (KeyboardInterrupt, SystemExit):
-        vlog("")
-        vlog("Caught exit signal...")
-        disconnect(sock, thread, thread_should_stop, vlog)
-        vlog("Raising exit signal again...")
-        raise
-
-    vlog("All finished.") 
-    disconnect(sock, thread, thread_should_stop, vlog)
-    vlog("Goodbye.")
