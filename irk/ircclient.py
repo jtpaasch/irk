@@ -107,6 +107,39 @@ def parse_output(data, echo):
             A logger to pass the parsed data to.
 
     """
+    # Break up the data into words.
+    words = data.split()
+
+    # If there's a prefix, the first word starts with a colon
+    prefix = None
+    if words[0].startswith(":"):
+        prefix = words[0][1:]
+        words.pop(0)
+
+    # The command is the next word.
+    command = None
+    if words:
+        command = words[0]
+        words.pop(0)
+
+    # The params are everything up to the next colon.
+    params = []
+    is_param = True
+    while is_param:
+        if words and not words[0].startswith(":"):
+            params.append(words[0])
+            words.pop(0)
+        else:
+            is_param = False
+
+    # The tail is the rest.
+    tail = []
+    if words:
+        tail.extend(words)
+
+    output = command + " " + " ".join(tail)
+
+    # echo(output)
     echo(data)
 
 
