@@ -67,9 +67,7 @@ setup(
 
     # What are the run-time dependencies?
     # Pip will install these when you install this package.
-    install_requires=[
-        "click",
-    ],
+    install_requires=[],
 
     # Are there any extra dependency groups, e.g., for testing?
     extras_require={
@@ -86,8 +84,8 @@ setup(
         "console_scripts": [
 
             # Make a script/executable called ``irk`` which,
-            # when executed, loads and invokes ``irk.cli.main.cli()``.
-            "irk = irk.cli.main:entrypoint",
+            # when executed, loads and invokes ``irk.cli.entrypoint()``.
+            "irk = irk.cli:entrypoint",
 
         ],
     },

@@ -1,32 +1,11 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-"""A template for a long running python script.
-
-To execute it from the command line, run it normally, like this::
-
-    python <THIS-SCRIPT>.py --opt1 --opt2 ARG1 ARG2 ...
-
-If you execute it from the command line, the python interpeter will
-execute the ``if __name__ == "__main__"`` block at the end of the
-file. That block will parse the command line arguments, then
-execute the ``main()`` function.
-
-If you import this file into some other python script, you need to
-invoke the ``main()`` function yourself.
-
-Note:
-    If the --verbose/is_verbose flag is on, this program will
-    report anything sent to the ``log()`` function to STDERR. 
-    It's a good idea to report everything the program does
-    via the ``log()`` function, for debugging.
-
-"""
+"""The CLI for the package."""
 
 import logging
-import os
-import subprocess
 import sys
-import time
+
+from . import ircclient
 
 
 TEXT_BOLD = '\033[01m'
@@ -139,12 +118,7 @@ def usage():
     echo("  python " + str(__file__) + " --verbose bar")
 
 
-def irk(is_verbose):
-    from .. import sock
-    sock.start(echo, emphasize, warning, error, lambda x: log(x, is_verbose))
-
-
-def main(is_verbose=False):
+def main(host, port, is_verbose=False):
     """This starts the main program loop.
 
     Args:
@@ -155,7 +129,8 @@ def main(is_verbose=False):
     """
     log("Executing main()...", is_verbose)
     try:
-        irk(is_verbose)
+        ircclient.start(host, port, 
+            echo, error, lambda x: log(x, is_verbose))
 
     # Trap exits so we can handle them.
     except KeyboardInterrupt:
@@ -172,11 +147,9 @@ def entrypoint():
     # Are we showing verbose logging details?
     is_verbose = False
 
-    # What is the default sleep time for each execution loop?
-    wait = 1
-
-    # What is the FOO argument?
-    foo = None
+    # What are the HOST and PORT arguments?
+    host = None
+    port = 6667
 
     # Parse the command line arguments.
     args = sys.argv
@@ -202,9 +175,9 @@ def entrypoint():
         # Anything else must be an argument.
         else:
 
-            # The first argument should be FOO.
-            if not foo:
-                foo = arg
+            # The first argument should be HOST.
+            if not host:
+                host = arg
 
             # We don't recognize any other arguments.
             else:
@@ -213,16 +186,19 @@ def entrypoint():
 
         arg_index += 1
 
-    '''
-    # Make sure the FOO argument was provided.
-    log("The user provided this value for FOO: " + str(foo), is_verbose)
-    if not foo:
-        error("Missing required argument: FOO.")
+    # Make sure the HOST argument was provided.
+    log("The user provided this value for HOST: " + str(host), is_verbose)
+    if not host:
+        error("Missing required argument: HOST.")
         sys.exit(1)
-    '''
+
+    host_pieces = host.split(":")
+    if len(host_pieces) == 2:
+        host = host_pieces[0]
+        port = host_pieces[1]
 
     # Start the program.
-    main(is_verbose)
+    main(host, port, is_verbose)
 
 
 if __name__ == "__main__":
