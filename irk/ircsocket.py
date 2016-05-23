@@ -100,7 +100,7 @@ def send(sock, data, vlog):
             msg = "Socket connection broken."
             vlog(msg)
             raise exceptions.ConnectionBroken(msg)
-        vlog("Sent: " + str(part_to_send.decode("utf-8")))
+        vlog("Sent: " + str(part_to_send.decode("ascii", "ignore")))
         total_chars_sent += chars_sent
     vlog("Finished sending: " + str(data))
 
@@ -130,11 +130,11 @@ def receive(sock, thread_should_stop, output_handler, vlog):
         vlog("Checking for data sent over the socket...")
 
         data = sock.recv(chunk_size)
-        data_utf8 = data.decode("utf-8")
-        vlog("Received: " + data_utf8)
+        data_ascii = data.decode("ascii", "ignore")
+        vlog("Received: " + data_ascii)
 
         # Split the data on the lines.
-        buffer += data_utf8
+        buffer += data_ascii
         lines_in_buffer = buffer.split("\n")
 
         # The last line might be half a line.
